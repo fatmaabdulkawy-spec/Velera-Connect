@@ -263,6 +263,22 @@ option{background:#15241D;color:var(--ink)}
 .ok-msg{background:var(--okbg);color:var(--ok);border:1px solid rgba(87,199,155,.3);border-radius:10px;padding:16px 20px;font-size:16px;margin-top:20px}
 .bad-msg{background:var(--badbg);color:var(--bad);border:1px solid rgba(240,138,118,.3);border-radius:10px;padding:16px 20px;font-size:16px;margin-top:20px}
 
+
+/* ---------- new meeting window ---------- */
+.mwov{position:fixed;inset:0;background:rgba(6,12,9,.55);z-index:95;display:flex;align-items:flex-start;justify-content:center;
+  padding:6vh 16px 22px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .22s}
+.mwov.on{opacity:1;pointer-events:auto}
+.mw{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:100%;max-width:620px;
+  box-shadow:0 24px 70px rgba(0,0,0,.55);overflow:hidden;transform:translateY(14px) scale(.98);transition:transform .28s cubic-bezier(.2,.8,.3,1)}
+.mwov.on .mw{transform:none}
+.mwbar{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 18px;background:var(--panel2);border-bottom:1px solid var(--line2)}
+.mwbar b{font-size:14.5px;font-weight:600;flex:1}
+.mwbar .dots{display:flex;gap:7px}
+.mwbar .dots i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.14)}
+.mwx{background:transparent;border:0;color:var(--muted);width:32px;height:32px;border-radius:8px;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer}
+.mwx:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+.mw .mbody{padding:22px 24px 26px}
+
 /* ---------- modal ---------- */
 .ov{position:fixed;inset:0;background:rgba(6,12,9,.74);backdrop-filter:blur(5px);overflow-y:auto;display:block;
     padding:22px;z-index:90;opacity:0;pointer-events:none;transition:opacity .28s}
@@ -835,6 +851,7 @@ html[data-board="1"],html[data-board="1"] body{height:auto;overflow-y:auto !impo
 
 <div class="notif" id="notif"><span class="nicon">&#9993;</span><div class="ntx"><b>M. Anwar &middot; Finance</b><span>Commission schedule CS-114 on hold</span><i>Approver and requester are the same user&hellip;</i></div></div>
 
+<div class="mwov" id="mwov"><div class="mw" role="dialog" aria-modal="true" aria-labelledby="mwTitle"><div class="mwbar"><span class="dots"><i></i><i></i><i></i></span><b id="mwTitle">New meeting</b><button class="mwx" id="mwClose" aria-label="Close">&times;</button></div><div id="mwBody"></div></div></div>
 <div class="ov" id="ov"><div class="mdl" id="mdl"></div></div>
 
 <footer>Velera Connect is a fictional system built for training. Velera Residences, its people and its figures are invented.</footer>
@@ -1236,9 +1253,7 @@ function renderMail(i,open){
   }
 }
 function composeMeeting(){
-  [].slice.call(document.querySelectorAll('.mitem')).forEach(function(b){b.classList.remove('sel');});
-  $('mailRead').innerHTML='<div class="mhead"><h3>New meeting</h3></div>'
-   +'<div class="mbody">'
+  $('mwBody').innerHTML='<div class="mbody">'
    +'<div class="fld"><label class="f">Required attendee</label><select id="mAtt">'
      +'<option value="">Select</option>'
      +'<option>N. Sabry &middot; Head of Sales</option>'
@@ -1254,26 +1269,34 @@ function composeMeeting(){
    +'<div class="fld"><label class="f">Message</label><textarea id="mNote" placeholder="Optional. What do you want them to walk in knowing?"></textarea></div>'
    +'<button class="btn" id="sendMeet">Send invitation and join</button><div id="meetMsg"></div>'
    +'</div>';
+  $('mwov').classList.add('on');
+  setTimeout(function(){ $('mAtt').focus(); },150);
   $('sendMeet').addEventListener('click',function(){
     var who=$('mAtt').value, m=$('meetMsg');
     if(!who){ m.innerHTML='<div class="bad-msg">Choose who you want in the room.</div>'; return; }
     if(who.indexOf('N. Sabry')!==0){
       var nm=who.split(' \u00b7 ')[0];
       m.innerHTML='<div class="bad-msg"><b>'+nm+' was not involved in this.</b><br>'
-        +'The discount was approved by N. Sabry, Head of Sales, on a request raised at her own instruction. '
+        +'The discount was approved by N. Sabry, Head of Sales, on a request raised at her own instruction, '
         +'and nobody else can account for it. Invite her instead.</div>';
       return;
     }
     this.disabled=true;
     m.innerHTML='<div class="ok-msg">Invitation sent to N. Sabry. Joining now.</div>';
+    var subj=$('mSubj').value||'DR-0912';
     setTimeout(function(){
+      closeMeetWin();
       meetModal('N. Sabry','Head of Sales',
         'Six units went out at '+COMMITTED.ceil+'% against the '+APPROVED.ceil+'% ceiling you signed. She may approve to the ceiling and no further, and nobody came back to you.',
         'zoomNour','I have spoken with her','afterNour',
-        $('mSubj').value||'DR-0912');
+        subj);
     },600);
   });
 }
+function closeMeetWin(){ $('mwov').classList.remove('on'); }
+$('mwClose').addEventListener('click',closeMeetWin);
+$('mwov').addEventListener('click',function(e){ if(e.target===this) closeMeetWin(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeMeetWin(); });
 $('newMeet').addEventListener('click',composeMeeting);
 
 [].slice.call(document.querySelectorAll('.mitem')).forEach(function(b){
